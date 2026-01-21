@@ -1,0 +1,28 @@
+# Credentials and Secrets
+login.json
+*.pfx
+.env
+
+# Streamlit/App internals
+.streamlit/
+.gemini/
+
+# Python caching and environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Data and Logs (Optional: keep data dir structures but ignore files)
+logs/
+data/*.csv
+!data/candidate_list.csv
+
+# System files
+.DS_Store
+Thumbs.db
