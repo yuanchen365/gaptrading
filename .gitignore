@@ -26,3 +26,6 @@ data/*.csv
 # System files
 .DS_Store
 Thumbs.db
+
+# External Tools
+antigravity-skills/

@@ -16,9 +16,13 @@ from modules.gap_filter import run_gap_filter
 from modules.contract_resolver import resolve_contracts
 from modules.monitor_loop import run_monitoring_iteration
 from modules.simulation import run_simulation
+from modules.ui_components import apply_custom_styles, render_header
 
 # Page Configuration
 st.set_page_config(page_title="台股即時強勢跳空篩選", layout="wide")
+
+# Apply Custom CSS Theme
+apply_custom_styles()
 
 # Helper Functions
 def run_pre_process():
@@ -46,7 +50,8 @@ if 'discarded_count' not in st.session_state:
 if 'retry_counts' not in st.session_state:
     st.session_state.retry_counts = {}
 
-st.title("🚀 台股即時強勢跳空篩選器")
+# Custom Header
+render_header()
 
 # ===== SIDEBAR =====
 with st.sidebar:
