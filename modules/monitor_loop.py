@@ -5,6 +5,7 @@ Monitor Loop Module
 import datetime
 import pandas as pd
 import strategy
+from line_notifier import notifier
 
 
 def run_monitoring_iteration(api, monitoring_list, prev_high_map, bias_map, contract_info, snapshots, session_state):
@@ -80,6 +81,10 @@ def run_monitoring_iteration(api, monitoring_list, prev_high_map, bias_map, cont
         
         # 2. 強勢區邏輯 (目前的狀態)
         if is_active:
+            # 觸發 LINE 通知
+            gap_val = (open_ - prev_close) / prev_close if prev_close != 0 else 0
+            notifier.notify_signal(code, name, close, gap_val, p_loc, vol, amt)
+            
             active_data.append(row)
             session_state.triggered_history.add(code)
         

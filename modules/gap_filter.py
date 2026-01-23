@@ -4,6 +4,7 @@ Gap Filter Module
 """
 import pandas as pd
 import streamlit as st
+import datetime
 from .contract_resolver import resolve_contracts
 from .api_manager import fetch_snapshots_parallel
 
@@ -54,10 +55,27 @@ def run_gap_filter(api, candidate_list_path, status_widget=None):
     
     # Step 4: Filter Logic
     write_status("⚡ 執行跳空邏輯運算...")
+    
+    # 防呆機制 1: 時間檢查
+    now = datetime.datetime.now()
+    if now.time() < datetime.time(9, 0, 0):
+        write_status(f"⚠️ 注意: 目前時間 {now.strftime('%H:%M')} 尚未開盤 (09:00)，過濾器將嚴格檢查資料日期")
+
     gap_list = []
     gap_data = []
+    stale_count = 0
+    today_str = now.strftime('%Y-%m-%d')
     
     for snap in snapshots:
+        # 防呆機制 2: 資料日期核對 (Data Freshness Check)
+        # Snapshot ts is in nanoseconds
+        ts_date = datetime.datetime.fromtimestamp(snap.ts / 1_000_000_000).strftime('%Y-%m-%d')
+        
+        # 只有在非模擬模式下，才強制過濾過期資料
+        if not api.simulation and ts_date != today_str:
+            stale_count += 1
+            continue
+
         code = snap.code
         open_ = snap.open
         
@@ -75,10 +93,18 @@ def run_gap_filter(api, candidate_list_path, status_widget=None):
                     "名稱": name,
                     "開盤": open_,
                     "昨收": ref_price,
-                    "漲幅%": f"{pct*100:.2f}%"
+                    "漲幅%": f"{pct*100:.2f}%",
+                    "資料時間": str(datetime.datetime.fromtimestamp(snap.ts / 1_000_000_000).time())
                 })
     
+    if stale_count > 0:
+        write_status(f"🛡️ 已自動過濾 {stale_count} 筆非今日 ({today_str}) 之過期資料")
+    
     gap_df = pd.DataFrame(gap_data)
-    write_status(f"✅ 篩選完成! 符合: {len(gap_list)} 檔")
+    
+    if gap_df.empty and stale_count > 0:
+         write_status(f"✅ 篩選完成! (過濾掉所有舊資料，目前無今日跳空標的)")
+    else:
+         write_status(f"✅ 篩選完成! 符合: {len(gap_list)} 檔")
     
     return gap_list, gap_df

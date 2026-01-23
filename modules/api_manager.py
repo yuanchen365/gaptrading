@@ -15,7 +15,7 @@ def init_shioaji():
     初始化 Shioaji API 並確保合約已下載
     """
     try:
-        api = sj.Shioaji(simulation=True)
+        api = sj.Shioaji(simulation=False)
         
         # Login
         if "api_key" in config.CONFIG and "secret_key" in config.CONFIG:
