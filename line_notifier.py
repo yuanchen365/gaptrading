@@ -66,7 +66,8 @@ class LineNotifier:
             f"現價：{price} (跳空 +{gap_pct}%)\n"
             f"P-Loc：{p_loc:.2f}\n"
             f"量能：{volume}張 / {amt_亿}億\n"
-            f"狀態：符合 60MA 低基期排名"
+            f"狀態：符合 60MA 低基期排名\n"
+            f"外部資訊：https://www.cnyes.com/twstock/{stock_code}/charts/technical-history"
         )
         
         self.send_message(msg)

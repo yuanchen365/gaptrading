@@ -32,7 +32,7 @@ def check_criteria(snapshot_data, prev_high, bias_val):
     amt = get_val(snapshot_data, 'total_amount')
     
     # 1. GAP Logic
-    # Strict Gap: Low > PrevHigh AND Open > PrevHigh * 1.01
+    # Strict Gap: Low >= PrevHigh AND Open > PrevHigh * 1.01
     cond_gap = (low >= prev_high) and (open_ > prev_high * 1.01)
     
     # 2. P-Loc Logic

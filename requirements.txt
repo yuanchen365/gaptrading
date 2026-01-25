@@ -1,0 +1,5 @@
+shioaji
+finlab
+pandas
+requests
+streamlit
