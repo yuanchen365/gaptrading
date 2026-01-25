@@ -56,13 +56,15 @@ def run_monitoring_iteration(api, monitoring_list, prev_high_map, bias_map, cont
             gap_candidates_data.append(row)
             continue
         
+        
         # Get prev_close and prev_high
         prev_close = ref_price if ref_price > 0 else (close - (snap.change_price or 0))
         prev_high = prev_high_map.get(code, prev_close)
         bias_val = bias_map.get(code, 0)
+        has_future = info.get("has_future", False)
         
         # Check criteria using strategy module
-        is_active, features, p_loc, cond_gap = strategy.check_criteria(snap, prev_high, bias_val)
+        is_active, features, p_loc, cond_gap = strategy.check_criteria(snap, prev_high, bias_val, has_future)
         
         row = {
             "時間": datetime.datetime.now().strftime("%H:%M:%S"),
@@ -83,7 +85,7 @@ def run_monitoring_iteration(api, monitoring_list, prev_high_map, bias_map, cont
         if is_active:
             # 觸發 LINE 通知
             gap_val = (open_ - prev_close) / prev_close if prev_close != 0 else 0
-            notifier.notify_signal(code, name, close, gap_val, p_loc, vol, amt)
+            notifier.notify_signal(code, name, close, gap_val, p_loc, vol, amt, has_future)
             
             active_data.append(row)
             session_state.triggered_history.add(code)

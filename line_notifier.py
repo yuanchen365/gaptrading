@@ -50,7 +50,7 @@ class LineNotifier:
         except Exception as e:
             print(f"Error sending LINE: {e}")
 
-    def notify_signal(self, stock_code, name, price, gap, p_loc, volume, amount):
+    def notify_signal(self, stock_code, name, price, gap, p_loc, volume, amount, has_future=False):
         self._reset_cache_if_new_day()
         
         if stock_code in self.sent_today:
@@ -60,9 +60,12 @@ class LineNotifier:
         amt_亿 = round(amount / 100_000_000, 2)
         gap_pct = round(gap * 100, 2)
         
+        # Add future indicator to name
+        name_display = f"{name} (⚡含股期)" if has_future else name
+        
         msg = (
             f"🚨 強勢標的觸發\n"
-            f"股票：{stock_code} {name}\n"
+            f"股票：{stock_code} {name_display}\n"
             f"現價：{price} (跳空 +{gap_pct}%)\n"
             f"P-Loc：{p_loc:.2f}\n"
             f"量能：{volume}張 / {amt_亿}億\n"

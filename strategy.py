@@ -1,6 +1,6 @@
 import config
 
-def check_criteria(snapshot_data, prev_high, bias_val):
+def check_criteria(snapshot_data, prev_high, bias_val, has_future=False):
     """
     Evaluates if a stock snapshot meets the strategy criteria.
     
@@ -10,6 +10,7 @@ def check_criteria(snapshot_data, prev_high, bias_val):
             (Note: if passing an object, enable attribute access)
         prev_high (float): Yesterday's High.
         bias_val (float): Pre-calculated Bias.
+        has_future (bool): Whether the stock has futures.
         
     Returns:
         tuple: (is_active, features_list, p_loc)
@@ -51,6 +52,9 @@ def check_criteria(snapshot_data, prev_high, bias_val):
     
     # Features Tagging
     features = []
+    if has_future:
+        features.append("⚡有股期")
+
     if p_loc >= 0.95:
         features.append("🔥S6_極強勢")
     elif p_loc >= 0.8:

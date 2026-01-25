@@ -23,6 +23,41 @@ def resolve_contracts(api, stock_codes: List[str], show_warnings: bool = False) 
     contract_info = {}
     failed_codes = []
     
+    # 1. Build a set of stocks that have futures (From Local CSV)
+    stocks_with_futures = set()
+    try:
+        import pandas as pd
+        from pathlib import Path
+        
+        # Path to the CSV (Assuming it is in data/stock_futures_list.csv relative to project root)
+        # Check commonly known relative paths
+        csv_path = Path(__file__).resolve().parent.parent / "data" / "stock_futures_list.csv"
+        
+        if csv_path.exists():
+            # Read CSV
+            df = pd.read_csv(csv_path)
+            
+            # Clean column names (remove newlines and spaces for safety, or access by index)
+            # The CSV header has newlines which might be tricky in pandas.
+            # Let's inspect columns by index to be safe: Col 0 = Code, Col 2 = Future Flag
+            
+            # Iterate rows
+            for _, row in df.iterrows():
+                # Check 3rd column (index 2) for "●" or non-empty
+                # Use .iloc just to be safe about column naming quirks
+                has_future_flag = str(row.iloc[2]).strip()
+                if "●" in has_future_flag:
+                    # Clean code (remove non-digits if any, though likely clean)
+                    code_str = str(row.iloc[0]).strip()
+                    stocks_with_futures.add(code_str)
+        else:
+            if show_warnings:
+                print(f"⚠️ 無法找到期貨清單檔案: {csv_path}")
+
+    except Exception as e:
+        if show_warnings:
+            print(f"⚠️ 讀取期貨清單失敗: {e}")
+
     for code in stock_codes:
         try:
             # Try TSE first (上市)
@@ -36,9 +71,11 @@ def resolve_contracts(api, stock_codes: List[str], show_warnings: bool = False) 
             
             if c:
                 contracts.append(c)
+                has_fut = code in stocks_with_futures
                 contract_info[code] = {
                     "name": c.name,
-                    "reference": float(c.reference) if c.reference else 0.0
+                    "reference": float(c.reference) if c.reference else 0.0,
+                    "has_future": has_fut
                 }
             else:
                 failed_codes.append(code)
