@@ -34,3 +34,6 @@ MIN_AMOUNT_TWD = 10_000_000  # 10 Million
 # Pre-process Parameters
 BIAS_WINDOW = 60
 BIAS_PERCENTILE = 0.60  # Bottom 60%
+
+MA_CONVERGENCE_THRESHOLD = 0.05
+
