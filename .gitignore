@@ -27,3 +27,6 @@ data/*.csv
 .DS_Store
 Thumbs.db
 
+
+downloaded-logs-*.json
+Untitled*.txt
