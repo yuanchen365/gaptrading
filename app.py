@@ -15,7 +15,7 @@ from modules.api_manager import init_shioaji, get_valid_api, fetch_snapshots_par
 from modules.gap_filter import run_gap_filter
 from modules.contract_resolver import resolve_contracts
 from modules.monitor_loop import run_monitoring_iteration
-from modules.simulation import run_simulation
+
 from modules.ui_components import apply_custom_styles, render_header
 
 # Page Configuration
@@ -29,7 +29,7 @@ def run_pre_process():
     import pre_process
     with st.spinner('執行盤前篩選中 (FinLab)...'):
         stock_list = pre_process.get_candidates()
-    st.success(f"篩選完成！共 {len(stock_list)} 檔低基期股票。")
+    st.success(f"篩選完成！共 {len(stock_list)} 檔候選股票 (包含低基期與均線糾結)。")
     return stock_list
 
 # --- Session State Initialization ---
@@ -177,105 +177,7 @@ with st.sidebar:
     else:
         st.info("🔴 已停止")
     
-    st.divider()
-    
-    # ========== SECTION 4: 盤後回測 ==========
-    st.subheader("🕐 Step 3: 盤後回測")
-    
-    now_time = datetime.datetime.now().time()
-    close_time = datetime.time(13, 30)
-    
-    if now_time >= close_time:
-        # Check if gap filter has been run
-        if not st.session_state.monitoring_list or len(st.session_state.monitoring_list) == 0:
-            st.warning("⚠️ 請先執行「開盤跳空篩選」以取得回測標的")
-            st.caption("💡 回測將針對當日符合跳空條件的股票進行")
-        else:
-            st.success(f"✅ 回測標的: {len(st.session_state.monitoring_list)} 檔跳空股票")
-            
-            # Show sample stocks
-            sample_codes = st.session_state.monitoring_list[:5]
-            st.caption(f"範例: {', '.join(sample_codes)}{'...' if len(st.session_state.monitoring_list) > 5 else ''}")
-            
-            sim_limit = st.number_input(
-                "測試檔數限制 (0=全部)", 
-                min_value=0, 
-                max_value=len(st.session_state.monitoring_list),
-                value=min(10, len(st.session_state.monitoring_list)), 
-                step=1,
-                help=f"最多可測試 {len(st.session_state.monitoring_list)} 檔"
-            )
-            
-            if st.session_state.get('sim_state', 'IDLE') == 'IDLE':
-                if st.button("▶️ 啟動回放測試", use_container_width=True):
-                    st.session_state.sim_state = 'RUNNING'
-                    st.session_state.simulation_limit = sim_limit
-                    st.session_state.monitoring = False
-                    
-                    # Prepare simulation
-                    status = st.status("🎬 準備回測環境...", expanded=True)
-                    
-                    try:
-                        # Load necessary data
-                        status.write("📂 載入候選清單資料...")
-                        candidates_df = pd.read_csv(config.CANDIDATE_LIST_PATH)
-                        
-                        bias_map_val = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['bias']))
-                        
-                        if 'prev_high' in candidates_df.columns:
-                            prev_high_map = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['prev_high']))
-                        else:
-                            prev_high_map = {}
-                        
-                        # Get API
-                        status.write("🔄 初始化 API...")
-                        api = get_valid_api()
-                        
-                        if not api:
-                            status.update(label="❌ API 初始化失敗", state="error")
-                            st.session_state.sim_state = 'IDLE'
-                        else:
-                            # Get contract info
-                            status.write("📜 取得合約資訊...")
-                            test_codes = st.session_state.monitoring_list[:sim_limit] if sim_limit > 0 else st.session_state.monitoring_list
-                            contracts, contract_info = resolve_contracts(api, test_codes)
-                            
-                            status.update(label="✅ 準備完成，開始回測...", state="running")
-                            
-                            # Run simulation
-                            results = run_simulation(
-                                api=api,
-                                monitoring_list=test_codes,
-                                prev_high_map=prev_high_map,
-                                bias_map=bias_map_val,
-                                contract_info=contract_info,
-                                target_date=datetime.datetime.now().date(),
-                                session_state=st.session_state,
-                                status_widget=status,
-                                speed=0.3
-                            )
-                            
-                            status.update(label=f"✅ 回測完成！", state="complete")
-                            
-                            # Display results
-                            st.success(f"🎉 回測完成！共回放 {results['total_minutes']} 分鐘")
-                            st.info(f"📊 最高強勢股: {results['max_active']} 檔 | 最高觀察: {results['max_watchlist']} 檔 | 最高跳空候選: {results['max_gap']} 檔")
-                            
-                            st.session_state.sim_state = 'IDLE'
-                            
-                    except Exception as e:
-                        status.update(label=f"❌ 回測失敗: {e}", state="error")
-                        st.session_state.sim_state = 'IDLE'
-                    
-            else:
-                if st.button("⏸️ 結束回放", use_container_width=True, type="primary"):
-                    st.session_state.sim_state = 'IDLE'
-                    st.rerun()
-    else:
-        st.caption("⚠️ 須於收盤後 (13:30) 開放")
 
-    
-    st.divider()
     
     # ========== SECTION 5: 說明文件 ==========
     with st.expander("📖 專案交易流程說明"):
@@ -294,9 +196,7 @@ with st.sidebar:
             3.  **量能**：量 > 500 張 & 金額 > 1000 萬
         *   **LINE 通知**：首次進入強勢區時發送。
 
-        ### 3. 盤後回測 (Post-Market)
-        *   **執行**：收盤後 (13:30) 點擊「歷史回放」。
-        *   **邏輯**：使用當日 1 分 K 線重現盤中走勢。
+
         """)
 
 

@@ -66,6 +66,9 @@ def run_gap_filter(api, candidate_list_path, status_widget=None):
     stale_count = 0
     today_str = now.strftime('%Y-%m-%d')
     
+    # Create lookup map for strategy tags
+    strategy_map = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['strategy_tag']))
+
     for snap in snapshots:
         # 防呆機制 2: 資料日期核對 (Data Freshness Check)
         # Snapshot ts is in nanoseconds
@@ -88,9 +91,15 @@ def run_gap_filter(api, candidate_list_path, status_widget=None):
             pct = (open_ - ref_price) / ref_price
             if pct >= 0.01:
                 gap_list.append(code)
+                
+                # Get strategy tag and format it
+                raw_tag = strategy_map.get(code, "")
+                tag_display = raw_tag.replace("bias", "低基期").replace("ma_conv", "均線糾結").replace("|", " + ")
+
                 gap_data.append({
                     "代碼": code,
                     "名稱": name,
+                    "策略": tag_display,
                     "開盤": open_,
                     "昨收": ref_price,
                     "漲幅%": f"{pct*100:.2f}%",

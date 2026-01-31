@@ -26,6 +26,7 @@ try:
     from modules.contract_resolver import resolve_contracts
     from modules.api_manager import fetch_snapshots_parallel
     from modules.monitor_loop import run_monitoring_iteration
+    from modules.tsm_premium import TSMPremiumMonitor
 except ImportError as e:
     logger.error(f"Import failed: {e}")
     sys.exit(1)
@@ -115,6 +116,15 @@ def main():
     # 2. Check Time & Wait for Open (Optional)
     # Cloud Run Job should be scheduled at ~08:55.
     
+    # 1.5 Run TSM Premium Monitor (if before 09:00)
+    now = datetime.datetime.now()
+    if now.time() < datetime.time(9, 0):
+        logger.info("[Step 1.5] Running TSMC Premium Monitor...")
+        try:
+            TSMPremiumMonitor().run()
+        except Exception as e:
+            logger.error(f"TSM Premium Monitor failed: {e}")
+
     # 3. Initialize API
     logger.info("[Step 2] Connecting to Shioaji...")
     api = init_shioaji_headless()
@@ -183,21 +193,21 @@ def main():
             if pct >= 0.01:
                 gap_list.append(code)
     
-    logger.info(f"Gap Filter Result: {len(gap_list)} stocks found with Gap > 1%")
-    
-    if not gap_list:
-        logger.warning("No gap stocks found today. Exiting.")
-        return
-
-    # 5. Monitoring Loop
-    logger.info(f"[Step 4] Starting Monitor Loop for {len(gap_list)} stocks...")
-    
     # Prepare Data Maps
     bias_map = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['bias']))
+    strategy_map = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['strategy_tag']))
+    
     if 'prev_high' in candidates_df.columns:
         prev_high_map = dict(zip(candidates_df['stock_code'].astype(str), candidates_df['prev_high']))
     else:
         prev_high_map = {}
+        
+    # Log Gap Results with Strategy Tags
+    logger.info(f"Gap Filter Result: {len(gap_list)} stocks found with Gap > 1%")
+    for code in gap_list:
+        tag = strategy_map.get(str(code), "unknown")
+        tag_display = tag.replace("bias", "低基期").replace("ma_conv", "均線糾結").replace("|", "+")
+        logger.info(f"  - [{code}] {tag_display}")
 
     # Initialize Session State
     session_state = MockSessionState()
